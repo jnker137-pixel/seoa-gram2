@@ -1,17 +1,17 @@
 {
-  "name": "seoa-gram",
-  "short_name": "seoa-gram",
+  "name": "seoa-gram2",
+  "short_name": "seoa-gram2",
   "description": "AI 컴패니언 앱",
   "lang": "ko",
-  "start_url": "/seoa-gram/",
-  "scope": "/seoa-gram/",
+  "start_url": "/seoa-gram2/",
+  "scope": "/seoa-gram2/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#111827",
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "/seoa-gram/favicon.svg",
+      "src": "/seoa-gram2/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
