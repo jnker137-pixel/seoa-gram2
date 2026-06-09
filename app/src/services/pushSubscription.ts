@@ -16,14 +16,14 @@ export async function subscribeToPush(clientId: string): Promise<string> {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new Error(`알림 권한 거부: ${permission}`);
 
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    // applicationServerKey는 base64url 문자열 그대로 사용 (Uint8Array 변환 시 TS 타입 충돌)
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: VAPID_PUBLIC_KEY,
-    });
-  }
+  // 기존 구독 해제 후 항상 새로 구독 (만료된 엔드포인트 재사용 방지)
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) await existing.unsubscribe();
+
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: VAPID_PUBLIC_KEY,
+  });
 
   const sub = subscription.toJSON();
   const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
@@ -32,7 +32,7 @@ export async function subscribeToPush(clientId: string): Promise<string> {
       'Content-Type': 'application/json',
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Prefer: 'return=minimal',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
     },
     body: JSON.stringify({
       client_id: clientId,
