@@ -1,0 +1,12 @@
+name = "seongmin-bot"
+main = "index.js"
+compatibility_date = "2024-01-01"
+account_id = "1b249037630288c305f84a362c577891"
+
+# placement = "off" 고정 — 절대 변경 금지
+# → mode="off" : Worker가 사용자(한국) 기준 ICN(서울)에서 실행 → 한국 IP로 API 호출
+# → mode="smart": Cloudflare가 HKG(홍콩)에 배치 → Gemini "user location not supported" 에러 발생
+#    (Gemini가 한국 IP는 허용하지만 HKG 데이터센터 IP는 차단함. 2026-05-25 확인)
+# → GPT도 한국 IP에서 정상 동작. HKG일 때만 OpenAI 에러 발생했음.
+[placement]
+mode = "off"
