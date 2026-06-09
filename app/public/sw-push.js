@@ -1,4 +1,4 @@
-const APP_URL = 'https://jnker137-pixel.github.io/seoa-gram/';
+const APP_URL = 'https://jnker137-pixel.github.io/seoa-gram2/';
 
 // 알람 클릭 후 새 창 열릴 때 iOS가 URL 파라미터를 무시하는 문제 우회
 // ready 메시지로 앱이 준비되면 navigate 전달
