@@ -4,7 +4,7 @@ import type { Character, GroupResponse } from '../types';
 import { supabase } from './supabase';
 
 const SOURCE = 'sg2';
-const RESPONSE_TIMEOUT_MS = 60_000;
+const RESPONSE_TIMEOUT_MS = 600_000; // 10분 — 허브 응답 대기
 
 // ── 1:1 메시지 전송 ────────────────────────────────────────────────────────────
 export async function sendMessageDirect(
