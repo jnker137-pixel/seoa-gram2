@@ -29,7 +29,7 @@ function waitForAssistantReply(characterId: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       supabase.removeChannel(channel);
-      reject(new Error('응답 대기 시간 초과 (60초). 허브가 실행 중인지 확인해줘.'));
+      reject(new Error('응답 대기 시간 초과 (10분). 허브가 실행 중인지 확인해줘.'));
     }, RESPONSE_TIMEOUT_MS);
 
     const channel = supabase
