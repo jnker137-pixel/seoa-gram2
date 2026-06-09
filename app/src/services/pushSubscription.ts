@@ -2,22 +2,7 @@ const VAPID_PUBLIC_KEY = 'BKMCVDQ4x3TccDE1Oi3MfrY-4i2fGWA0mPrdqf0DgaLX6movUljKBl
 const SUPABASE_URL = 'https://uxiymaeobmleshekvqvl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aXltYWVvYm1sZXNoZWt2cXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NTQ3OTYsImV4cCI6MjA4NzEzMDc5Nn0.cAltB-U4B7-38M065Cn30uwoPu-wzh62IkuDUT4rrAQ';
 
-async function getOrCreateSubscription(registration: ServiceWorkerRegistration, force: boolean) {
-  if (!force) {
-    const existing = await registration.pushManager.getSubscription();
-    if (existing) return existing;
-  } else {
-    const existing = await registration.pushManager.getSubscription();
-    if (existing) await existing.unsubscribe();
-  }
-  return registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: VAPID_PUBLIC_KEY,
-  });
-}
-
-// force=true: 버튼 클릭 시 강제 재구독 / force=false: 앱 로드 시 기존 구독 재사용
-export async function subscribeToPush(clientId: string, force = false): Promise<string> {
+export async function subscribeToPush(clientId: string): Promise<string> {
   if (!('serviceWorker' in navigator)) throw new Error('serviceWorker 미지원');
   if (!('PushManager' in window)) throw new Error('PushManager 미지원');
 
@@ -30,7 +15,13 @@ export async function subscribeToPush(clientId: string, force = false): Promise<
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') throw new Error(`알림 권한 거부: ${permission}`);
 
-  const subscription = await getOrCreateSubscription(registration, force);
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: VAPID_PUBLIC_KEY,
+    });
+  }
 
   const sub = subscription.toJSON();
   const res = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
@@ -39,7 +30,7 @@ export async function subscribeToPush(clientId: string, force = false): Promise<
       'Content-Type': 'application/json',
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Prefer: 'resolution=merge-duplicates,return=minimal',
+      Prefer: 'return=minimal',
     },
     body: JSON.stringify({
       client_id: clientId,
