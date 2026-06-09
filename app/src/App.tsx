@@ -227,26 +227,25 @@ export default function App() {
     if (activeId) localStorage.setItem('companions_last_char', activeId);
   }, [activeId]);
 
-  // 선톡 실시간 수신 — conversation_log에 assistant 메시지 INSERT 시 즉시 반영
+  // sg2 허브 응답 실시간 수신 — source='sg2' assistant INSERT 즉시 반영
   useEffect(() => {
     const channel = supabase
-      .channel('proactive-inbox')
+      .channel('sg2-inbox')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'conversation_log',
         filter: 'role=eq.assistant',
       }, (payload) => {
-        const raw = payload.new as { id: number; character_id: string; role: 'assistant'; content: string; created_at: string };
-        if (!raw.content?.startsWith('[선톡]')) return;
-        const msg: Message = {
-          ...raw,
-          content: raw.content.replace(/^\[선톡\]\s*/, ''),
-        };
+        const raw = payload.new as { id: number; character_id: string; role: 'assistant'; content: string; created_at: string; source?: string };
+        if (raw.source !== 'sg2') return;
+        const msg: Message = { ...raw };
         setMessagesByChar((prev) => {
           const existing = prev[raw.character_id] ?? [];
           if (existing.some((m) => m.id === msg.id)) return prev;
-          return { ...prev, [raw.character_id]: [...existing, msg] };
+          // 로컬에 추가된 임시 메시지(id 없음)를 DB 버전으로 교체
+          const withoutTemp = existing.filter((m) => m.id !== undefined);
+          return { ...prev, [raw.character_id]: [...withoutTemp, msg] };
         });
       })
       .subscribe();

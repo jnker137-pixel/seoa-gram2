@@ -54,22 +54,14 @@ export default function ChatView({
     setIsLoading(true);
 
     try {
-      const reply = await sendMessage(character, text, updatedMessages);
-      const assistantMsg: Message = {
-        character_id: character.id,
-        role: 'assistant',
-        content: reply,
-        created_at: new Date().toISOString(),
-      };
-
-      const finalMessages = [...updatedMessages, assistantMsg];
-      onMessagesChange(finalMessages);
+      // 허브 모드 — 응답은 App.tsx 실시간 구독(sg2-inbox)이 받아서 추가.
+      // sendMessage는 realtime이 resolve될 때까지 대기만 함.
+      await sendMessage(character, text, updatedMessages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '오류가 발생했어요');
+      setError(e instanceof Error ? e.message : '오류가 발생했어요. 허브(Claude Code)가 실행 중인지 확인해줘.');
       onMessagesChange(messages);
     } finally {
       setIsLoading(false);
-      // 자동 포커스 없음 — 읽은 후 직접 탭해서 입력
     }
   };
 
