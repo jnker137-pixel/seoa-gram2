@@ -161,7 +161,7 @@ export default function App() {
   const handleEnableNotifications = async () => {
     setNotifError(null);
     try {
-      await subscribeToPush('seoa-gram2-seongmin');
+      await subscribeToPush('seoa-gram2-seongmin', true);
       setNotifStatus('granted');
     } catch (e) {
       setNotifError(String(e));
