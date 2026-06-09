@@ -243,9 +243,7 @@ export default function App() {
         setMessagesByChar((prev) => {
           const existing = prev[raw.character_id] ?? [];
           if (existing.some((m) => m.id === msg.id)) return prev;
-          // 로컬에 추가된 임시 메시지(id 없음)를 DB 버전으로 교체
-          const withoutTemp = existing.filter((m) => m.id !== undefined);
-          return { ...prev, [raw.character_id]: [...withoutTemp, msg] };
+          return { ...prev, [raw.character_id]: [...existing, msg] };
         });
       })
       .subscribe();
