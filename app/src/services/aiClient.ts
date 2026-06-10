@@ -1,10 +1,10 @@
-// 직접 호출 모드 — seoa-gram1과 동일하게 Cloudflare Worker(/chat)를 직접 호출해 즉시 응답 받음.
-// user/assistant 메시지는 source='sg2'로 Supabase에 저장 → App.tsx realtime 구독이 화면에 반영.
+// Hub mode — 브라우저에서 AI API 직접 호출 없음.
+// user 메시지를 Supabase에 source='sg2'로 저장 → 로컬 허브(Claude Code)가 감지해서 응답 생성 → realtime으로 수신.
 import type { Character, GroupResponse } from '../types';
 import { supabase } from './supabase';
 
 const SOURCE = 'sg2';
-const WORKER_URL = 'https://seongmin-bot.jnkre137.workers.dev/chat';
+const RESPONSE_TIMEOUT_MS = 600_000; // 10분 — 허브 응답 대기
 
 // ── 1:1 메시지 전송 ────────────────────────────────────────────────────────────
 export async function sendMessageDirect(
@@ -12,43 +12,50 @@ export async function sendMessageDirect(
   userMessage: string
 ): Promise<string> {
   // 1. user 메시지 저장
-  const { error: userErr } = await supabase.from('conversation_log').insert({
+  const { error } = await supabase.from('conversation_log').insert({
     character_id: character.id,
     role: 'user',
     content: userMessage,
     source: SOURCE,
   });
-  if (userErr) throw new Error(`메시지 저장 실패: ${userErr.message}`);
+  if (error) throw new Error(`메시지 저장 실패: ${error.message}`);
 
-  // 2. Worker 호출 — 즉시 응답 (Worker 자체 저장은 skip, 여기서 source='sg2'로 저장)
-  const res = await fetch(WORKER_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message: userMessage,
-      character_id: character.id,
-      skip_save: true,
-    }),
-  });
-  if (!res.ok) throw new Error(`AI 응답 실패 (${res.status})`);
-
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  const reply = data.reply ?? '';
-
-  // 3. assistant 응답 저장 → realtime으로 화면에 반영
-  const { error: aiErr } = await supabase.from('conversation_log').insert({
-    character_id: character.id,
-    role: 'assistant',
-    content: reply,
-    source: SOURCE,
-  });
-  if (aiErr) throw new Error(`응답 저장 실패: ${aiErr.message}`);
-
-  return reply;
+  // 2. realtime으로 assistant 응답 대기
+  return waitForAssistantReply(character.id);
 }
 
-// ── 단체 대화방 — 직접 호출 모드 미지원 (기존 직접 호출 유지) ────────────────────
+// ── realtime 구독으로 assistant 응답 대기 ─────────────────────────────────────
+function waitForAssistantReply(characterId: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      supabase.removeChannel(channel);
+      reject(new Error('응답 대기 시간 초과 (10분). 허브가 실행 중인지 확인해줘.'));
+    }, RESPONSE_TIMEOUT_MS);
+
+    const channel = supabase
+      .channel(`reply-${characterId}-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'conversation_log',
+          filter: `character_id=eq.${characterId}`,
+        },
+        (payload) => {
+          const row = payload.new as { role: string; content: string; source: string };
+          if (row.role === 'assistant' && row.source === SOURCE) {
+            clearTimeout(timer);
+            supabase.removeChannel(channel);
+            resolve(row.content);
+          }
+        }
+      )
+      .subscribe();
+  });
+}
+
+// ── 단체 대화방 — 허브 모드 미지원 (기존 직접 호출 유지) ────────────────────────
 // 단체방은 orchestrator 로직이 복잡하므로 일단 에러 반환
 export async function sendGroupMessageDirect(
   _roomId: string,
@@ -56,5 +63,5 @@ export async function sendGroupMessageDirect(
   _onResponse?: (r: GroupResponse) => void,
   _onPlanReady?: (speakerIds: string[]) => void,
 ): Promise<{ responses: GroupResponse[]; participantIds: string[] }> {
-  throw new Error('seoa-gram2 직접 호출 모드에서는 단체 대화방 미지원');
+  throw new Error('seoa-gram2 허브 모드에서는 단체 대화방 미지원');
 }

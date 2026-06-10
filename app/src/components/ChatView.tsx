@@ -54,10 +54,11 @@ export default function ChatView({
     setIsLoading(true);
 
     try {
-      // Worker가 즉시 응답을 반환하고, 응답은 App.tsx 실시간 구독(sg2-inbox)이 받아서 화면에 추가됨.
+      // 허브 모드 — 응답은 App.tsx 실시간 구독(sg2-inbox)이 받아서 추가.
+      // sendMessage는 realtime이 resolve될 때까지 대기만 함.
       await sendMessage(character, text, updatedMessages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : '오류가 발생했어요. 잠시 후 다시 시도해줘.');
+      setError(e instanceof Error ? e.message : '오류가 발생했어요. 허브(Claude Code)가 실행 중인지 확인해줘.');
       onMessagesChange(messages);
     } finally {
       setIsLoading(false);

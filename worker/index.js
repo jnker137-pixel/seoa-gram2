@@ -36,7 +36,7 @@ async function handleChat(request, env, ctx) {
   try { body = await request.json(); }
   catch { return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400, headers: jsonHeaders }); }
 
-  const { message, character_id, history = [], skip_save = false } = body;
+  const { message, character_id, history = [] } = body;
   if (!message?.trim()) return new Response(JSON.stringify({ reply: '' }), { headers: jsonHeaders });
   if (!character_id)    return new Response(JSON.stringify({ error: 'character_id required' }), { status: 400, headers: jsonHeaders });
 
@@ -70,13 +70,11 @@ async function handleChat(request, env, ctx) {
     const reply = needsClean(character.api_provider) ? cleanRoleplay(raw) : raw;
 
     // 7. 대화 저장 + L1 기억 갱신 (background — 응답 블로킹 없음)
-    // skip_save: 호출 측(예: seoa-gram2)이 자체적으로 conversation_log에 저장하는 경우 중복 저장 방지
-    const bgTasks = [updateL1Memory(character_id, context, recentMsgs, message, reply, env)];
-    if (!skip_save) {
-      bgTasks.push(saveMessage(character_id, 'user', message, env));
-      bgTasks.push(saveMessage(character_id, 'assistant', reply, env));
-    }
-    ctx.waitUntil(Promise.all(bgTasks));
+    ctx.waitUntil(Promise.all([
+      saveMessage(character_id, 'user', message, env),
+      saveMessage(character_id, 'assistant', reply, env),
+      updateL1Memory(character_id, context, recentMsgs, message, reply, env),
+    ]));
 
     return new Response(JSON.stringify({ reply }), { headers: jsonHeaders });
   } catch (e) {
