@@ -1,14 +1,14 @@
 {
-  "name": "seoa-gram2",
-  "short_name": "seoa-gram2",
-  "description": "AI 컴패니언 앱",
+  "name": "서아그램2 (HUB)",
+  "short_name": "서아그램2",
+  "description": "AI 컴패니언 허브 앱",
   "lang": "ko",
   "start_url": "/seoa-gram2/",
   "scope": "/seoa-gram2/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#111827",
-  "theme_color": "#111827",
+  "background_color": "#0a1f17",
+  "theme_color": "#00b894",
   "icons": [
     {
       "src": "/seoa-gram2/favicon.svg",
